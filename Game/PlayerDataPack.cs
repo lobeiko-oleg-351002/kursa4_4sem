@@ -13,6 +13,7 @@ namespace Game
     {
         public struct Data
         {
+            public int character_id;
             public byte id;
             public int positionX;
             public int positionY;
@@ -41,7 +42,8 @@ namespace Game
             Info.direction = player.direction;
             Info.positionX = player.positionX;
             Info.positionY = player.positionY;
-            Info.id = (byte)player.id[0];
+            Info.character_id = player.character_id;
+            Info.id = player.id;
 
         }
 

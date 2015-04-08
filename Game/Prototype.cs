@@ -53,7 +53,8 @@ namespace Game
         public int velocityX, velocityY;
         public bool direction, onGround;
         public int timeratio_for_minijump;
-        public string id;
+        public byte id;
+        public int character_id;
         
         IntPtr renderer;
 
@@ -101,6 +102,7 @@ namespace Game
 
             direction = import.direction;
             shiftColliders(currentColliders, positionX, positionY);
+            id = import.id;
         }
 
         public void handleEvent(SDL.SDL_Event e, float timestep)
@@ -165,6 +167,7 @@ namespace Game
             
         }
 
+        abstract public void character_init();
         abstract public void prepareAnimation_stand(ref float currentFrame);
         abstract public void prepareAnimation_walk(ref float currentFrame);
         abstract public void prepareAnimation_jump(ref float currentFrame);
@@ -172,7 +175,7 @@ namespace Game
         abstract public List<SDL.SDL_Rect> getWalkColliders();
         abstract public List<SDL.SDL_Rect> getJumpColliders();
 
-        private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders)
+        private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
             int shiftX = (int)Math.Ceiling(velocityX * timestep / gameSpeed);
             int startPositionX = positionX;
@@ -205,10 +208,34 @@ namespace Game
 
                     break;
                 }
+                bool isColis = false;
+                for (int i = 0; i < players.Count; i++)
+                {
+                    if (players[i].id != id)
+                    {
+                        if (true == CollisionWithPlayers(players[i]))
+                        {
+                            if (velocityX >= 0)
+                            {
+                                positionX -= shiftX_in_time;
+                            }
+                            else
+                            {
+                                positionX += shiftX_in_time;
+                            }
+                            isColis = true;
+                            break;
+                        }
+                        if (isColis == true)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
         }
 
-        private void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders)
+        private void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
             onGround = false;
             velocityY += (int)(gravity * timestep);
@@ -248,10 +275,43 @@ namespace Game
                     }
                     break;
                 }
+                bool isColis = false;
+                for (int i = 0; i < players.Count; i++)
+                {
+                    if (players[i].id != id)
+                    {
+                        if (true == CollisionWithPlayers(players[i]))
+                        {
+                            if (velocityY >= 0)
+                            {
+
+                                positionY -= 1;
+                                //Console.WriteLine("{0} {1} {2}", positionY, shiftY_in_time, velocityY);
+                                if (velocityY == 0) positionY--;
+                                onGround = true;
+                                velocityY = 0;
+                            }
+                            else
+                            {
+                                if (animationStatus == "jump")
+                                {
+                                    velocityY = 0;
+                                }
+                                positionY += 1;
+                            }
+                            isColis = true;
+                            break;
+                        }
+                    }
+                }
+                if (isColis == true)
+                {
+                    break;
+                }
             }
         }
 
-        public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, ref int offsetX, ref int offsetY)
+        public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players, ref int offsetX, ref int offsetY)
         {
             if ((0 == velocityX) && (true == onGround))
             {
@@ -285,10 +345,10 @@ namespace Game
                 {
                     direction = true;
                 }
-                move_positionX(timestep, Map, WallColliders);
+                move_positionX(timestep, Map, WallColliders, players);
             }
 
-            move_positionY(timestep, Map, WallColliders);  
+            move_positionY(timestep, Map, WallColliders, players);  
             if (false == onGround)
             {
                 if (animationStatus != "jump")
@@ -408,6 +468,12 @@ namespace Game
                 return false;
         }
 
+        public bool CollisionWithPlayers(Prototype other_player)
+        {
+            other_player.shiftColliders(other_player.currentColliders,other_player.positionX,other_player.positionY);
+            return checkCollision(other_player.currentColliders, currentColliders);
+        }
+
         private bool checkCollision(List<SDL.SDL_Rect> a, List<SDL.SDL_Rect> b )
         {
             //The sides of the rectangles
@@ -438,16 +504,42 @@ namespace Game
 
                     //If no sides from A are outside of B
 
-                    if( ( ( bottomA <= topB ) || ( topA >= bottomB ) || ( rightA <= leftB ) || ( leftA >= rightB ) ) == false )
+                    //if( ( ( (bottomA >= topB) && (bottomA <= bottomB) ) || ( (topA <= bottomB) && (topA >= topB) ) || ( (rightA >= leftB) && (rightA <= rightB) ) || ( (leftA <= rightB) && (leftA >= rightB) ) ) == true )
+                    //{
+                    //    //A collision is detected
+                    //    h += b[Bbox].h;
+                    //    //return b[Bbox].h;
+                    //    return true;
+                    //}
+                    bool colisX = false;
+                    for (int i = leftA; i <= rightA; i++)
                     {
-                        //A collision is detected
-                        h += b[Bbox].h;
-                        //return b[Bbox].h;
+                        for (int j = leftB; j <= rightB; j++)
+                        {
+                            if (i == j)
+                            {
+                                colisX = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (colisX == true)
+                    {
+                        for (int i = topA; i <= bottomA; i++)
+                        {
+                            for (int j = topB; j <= bottomB; j++)
+                            {
+                                if (i == j)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            return true;  //return h
+            return false;  //return h
         }
     }
 }

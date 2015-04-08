@@ -13,11 +13,13 @@ namespace Game
         public List<SDL.SDL_Rect> standColliders ;
         public List<SDL.SDL_Rect> walkColliders ;
         public List<SDL.SDL_Rect> jumpColliders ;
-        public void character_init()
+        public override void character_init()
         {
             standColliders = new List<SDL.SDL_Rect>();
             walkColliders = new List<SDL.SDL_Rect>();
             jumpColliders = new List<SDL.SDL_Rect>();
+
+            character_id = 0;
 
 
             path_to_spritesheet = "sonic.png";
