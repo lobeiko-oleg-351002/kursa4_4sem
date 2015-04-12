@@ -60,6 +60,7 @@ namespace Game
             Info.attackedPlayer_id = player.attackedPlayer_id;
             Info.health = player.currentHealth;
 
+
         }
 
         public byte[] InfoToBytes()
