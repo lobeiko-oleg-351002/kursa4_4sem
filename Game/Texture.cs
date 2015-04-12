@@ -11,7 +11,7 @@ namespace Game
 {
     class Texture
     {
-        private IntPtr currentTexture;
+        public IntPtr currentTexture;
 
         public void free()
         {

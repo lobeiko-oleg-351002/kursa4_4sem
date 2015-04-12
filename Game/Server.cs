@@ -110,6 +110,20 @@ namespace Game
             {
                 playersData[numClient] = pack;
             }
+            takingDamage(pack);
+        }
+
+        private void takingDamage(PlayerDataPack.Data pack)
+        {
+            for (int i = 0; i < playersData.Count; i++)
+            {
+                if (pack.attackedPlayer_id == playersData[i].id)
+                {
+                    PlayerDataPack.Data buf = playersData[i];
+                    buf.health -= pack.damage;
+                    playersData[i] = buf;
+                }
+            }
         }
 
         private void sendAmountOfPacks()

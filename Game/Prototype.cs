@@ -29,19 +29,16 @@ namespace Game
 
         public Box_velocity velocity_status;
 
-        public List<SDL.SDL_Rect> standTexture = new List<SDL.SDL_Rect>();
-        public List<SDL.SDL_Rect> walkTexture = new List<SDL.SDL_Rect>();
-        public List<SDL.SDL_Rect> jumpTexture = new List<SDL.SDL_Rect>();
 
         public List<SDL.SDL_Rect> currentColliders = new List<SDL.SDL_Rect>();
 
-        public int previousCollider_H;
+        public int previousCollider_H, previousCollider_W;
 
         public string path_to_spritesheet;
 
         private Texture playerTexture;
         public float currentFrame;
-        int current_animationSpeed;
+        public int current_animationSpeed;
         public string animationStatus;
         public SDL.SDL_Rect currentClip;
         Picture_for_render picture_info = new Picture_for_render();
@@ -50,10 +47,15 @@ namespace Game
         public const int gravity = 3;
         public float pressingJump;
         public int positionX, positionY;
-        public int velocityX, velocityY;
+        public int velocityX, velocityY, hidden_velocityX;
         public bool direction, onGround;
         public int timeratio_for_minijump;
-        public string id;
+        public byte id;
+        public int character_id;
+        public int currentHealth, maxHealth;
+        public int damage, attackedPlayer_id;
+        public float timeToRecovery;
+        public Text text = new Text();
         
         IntPtr renderer;
 
@@ -97,10 +99,24 @@ namespace Game
                         currentColliders = getJumpColliders();
                         break;
                     }
+                case 3:
+                    {
+                        prepareAnimation_attack(ref currentFrame);
+                        currentColliders = getAttackColliders();
+                        break;
+                    }
+                case 4:
+                    {
+                        prepareAnimation_takingDamage(ref currentFrame);
+                       // currentColliders = getAttackColliders();
+                        break;
+                    }
             }
 
             direction = import.direction;
-            shiftColliders(currentColliders, positionX, positionY);
+            currentColliders = shiftColliders(currentColliders, positionX, positionY);
+            id = import.id;
+            currentHealth = import.health;
         }
 
         public void handleEvent(SDL.SDL_Event e, float timestep)
@@ -110,14 +126,17 @@ namespace Game
                 //Adjust the velocity
                 switch (e.key.keysym.sym)
                 {
-                    case SDL.SDL_Keycode.SDLK_d:
+                    
+                    case SDL.SDL_Keycode.SDLK_RIGHT:
                     {
                         velocityX += velocity_status.walk;
+                        hidden_velocityX += velocity_status.walk;
                         break;
                     }
-                    case SDL.SDL_Keycode.SDLK_a:
+                    case SDL.SDL_Keycode.SDLK_LEFT:
                     {
                         velocityX -= velocity_status.walk;
+                        hidden_velocityX -= velocity_status.walk;
                         break;
                     }
                     case SDL.SDL_Keycode.SDLK_SPACE:
@@ -127,8 +146,12 @@ namespace Game
                             velocityY = -velocity_status.jump;
                             onGround = false;
                             pressingJump += timestep;
-                        }
-                        
+                        }                       
+                        break;
+                    }
+                    case SDL.SDL_Keycode.SDLK_a:
+                    {
+                        a_press(ref currentFrame);
                         break;
                     }
                 };
@@ -138,14 +161,17 @@ namespace Game
                 //Adjust the velocity
                 switch( e.key.keysym.sym )
                 {
-                    case SDL.SDL_Keycode.SDLK_d:
+                    case SDL.SDL_Keycode.SDLK_RIGHT:
                     {
                         velocityX -= velocity_status.walk;
+                        hidden_velocityX -= velocity_status.walk;
+
                         break;
                     }
-                    case SDL.SDL_Keycode.SDLK_a:
+                    case SDL.SDL_Keycode.SDLK_LEFT:
                     {
                         velocityX += velocity_status.walk;
+                        hidden_velocityX += velocity_status.walk;
                         break;
                     }
                     case SDL.SDL_Keycode.SDLK_SPACE:
@@ -165,14 +191,22 @@ namespace Game
             
         }
 
+        abstract public void character_init();
         abstract public void prepareAnimation_stand(ref float currentFrame);
         abstract public void prepareAnimation_walk(ref float currentFrame);
         abstract public void prepareAnimation_jump(ref float currentFrame);
+        abstract public void prepareAnimation_attack(ref float currentFrame);
+        abstract public void prepareAnimation_takingDamage(ref float currentFrame);
         abstract public List<SDL.SDL_Rect> getStandColliders();
         abstract public List<SDL.SDL_Rect> getWalkColliders();
         abstract public List<SDL.SDL_Rect> getJumpColliders();
+        abstract public List<SDL.SDL_Rect> getAttackColliders();
+        abstract public void a_press(ref float currentFrame);
+        //abstract public void a_release();
+        abstract public void isAttacking(float timestep);
+        abstract public void takingDamage(float timestep, int newHealth);
 
-        private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders)
+        private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
             int shiftX = (int)Math.Ceiling(velocityX * timestep / gameSpeed);
             int startPositionX = positionX;
@@ -189,6 +223,17 @@ namespace Game
                 {
                     positionX -= shiftX_in_time;
                 }
+                
+                if (positionX <= 0)                         //костыль исправить
+                {
+                    positionX = 1;
+                    break;
+                }
+                if (positionX >= 1200)
+                {
+                    positionX = 1200 ;
+                    break;
+                }
 
                 currentColliders = shiftColliders(currentColliders, positionX, positionY);
 
@@ -196,19 +241,47 @@ namespace Game
                 {
                     if (velocityX >= 0)
                     {
-                        positionX -= shiftX_in_time;
+                        positionX -= 1;
                     }
                     else
                     {
-                        positionX += shiftX_in_time;
+                        positionX += 1;
                     }
 
+                    break;
+                }
+                bool isColis = false;
+                for (int i = 0; i < players.Count; i++)
+                {
+                    if (players[i].id != id)
+                    {
+                        if (true == CollisionWithPlayers(players[i]))
+                        {
+                            if (velocityX >= 0)
+                            {
+                                positionX -= 1;
+                            }
+                            else
+                            {
+                                positionX += 1;
+                            }
+                            isColis = true;
+                            if (animationStatus == "attack")
+                            {
+                                attackedPlayer_id = players[i].id;
+                            }
+                            break;
+                        }
+                    }
+                }
+                if (isColis == true)
+                {
                     break;
                 }
             }
         }
 
-        private void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders)
+        private void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
             onGround = false;
             velocityY += (int)(gravity * timestep);
@@ -248,50 +321,93 @@ namespace Game
                     }
                     break;
                 }
+                bool isColis = false;
+                for (int i = 0; i < players.Count; i++)
+                {
+                    if (players[i].id != id)
+                    {
+                        if (true == CollisionWithPlayers(players[i]))
+                        {
+                            if (velocityY >= 0)
+                            {
+
+                                positionY -= 1;
+                                //Console.WriteLine("{0} {1} {2}", positionY, shiftY_in_time, velocityY);
+                                if (velocityY == 0) positionY--;
+                                onGround = true;
+                                velocityY = 0;
+                            }
+                            else
+                            {
+                                if (animationStatus == "jump")
+                                {
+                                    velocityY = 0;
+                                }
+                                positionY += 1;
+                            }
+                            isColis = true;
+                            break;
+                        }
+                    }
+                }
+                if (isColis == true)
+                {
+                    break;
+                }
             }
         }
 
-        public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, ref int offsetX, ref int offsetY)
+        public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players, ref int offsetX, ref int offsetY)
         {
-            if ((0 == velocityX) && (true == onGround))
+            attackedPlayer_id = -1;
+            if ((animationStatus != "attack") && (animationStatus != "takingDamage"))
             {
-                if (animationStatus != "stand")
+                if ((0 == velocityX) && (true == onGround))
                 {
-                    animationStatus = "stand";
-                    current_animationSpeed = animationSpeed.stand;
-                    currentFrame = 0;
-                    previousCollider_H = currentColliders[0].h;
-                    currentColliders = getStandColliders();
+                    if (animationStatus != "stand")
+                    {
+                        animationStatus = "stand";
+                        current_animationSpeed = animationSpeed.stand;
+                        currentFrame = 0;
+                        previousCollider_H = currentColliders[0].h;
+                        currentColliders = getStandColliders();
+                    }
+                }
+
+
+                if (0 != velocityX)
+                {
+                    if (animationStatus != "walk" && onGround == true)
+                    {
+                        animationStatus = "walk";
+                        current_animationSpeed = animationSpeed.walk;
+                        previousCollider_H = currentColliders[0].h;
+                        currentColliders = getWalkColliders();
+                        currentFrame = 0;
+                    }
+
+                    if (velocityX > 0)
+                    {
+                        direction = false;
+                    }
+                    else
+                    {
+                        direction = true;
+                    }
+                    move_positionX(timestep, Map, WallColliders, players);
                 }
             }
-
-
-            if  (0 != velocityX)
+            else
             {
-                if (animationStatus != "walk" && onGround == true )
-                {
-                    animationStatus = "walk";
-                    current_animationSpeed = animationSpeed.walk;
-                    previousCollider_H = currentColliders[0].h;
-                    currentColliders = getWalkColliders();
-                    currentFrame = 0;
-                }
 
-                if (velocityX > 0)
-                {
-                    direction = false;
-                }
-                else
-                {
-                    direction = true;
-                }
-                move_positionX(timestep, Map, WallColliders);
+                if (animationStatus == "attack") isAttacking(timestep / gameSpeed);
+                move_positionX(timestep, Map, WallColliders, players);
             }
 
-            move_positionY(timestep, Map, WallColliders);  
+            move_positionY(timestep, Map, WallColliders, players);  
             if (false == onGround)
             {
-                if (animationStatus != "jump")
+                if (animationStatus == "walk" || animationStatus == "stand")
                 {
                     animationStatus = "jump";
                     previousCollider_H = currentColliders[0].h;
@@ -314,14 +430,28 @@ namespace Game
             {
                 prepareAnimation_stand(ref currentFrame);
             }
+            if ("attack" == animationStatus)
+            {
+                prepareAnimation_attack(ref currentFrame);
+            }
+            if("takingDamage" == animationStatus)
+            {
+                prepareAnimation_takingDamage(ref currentFrame);
+            }
 
             currentFrame = currentFrame + current_animationSpeed * timestep / (float)gameSpeed;
             if (currentColliders[0].h > previousCollider_H)
             {
                 positionY = positionY - (currentColliders[0].h - previousCollider_H);
             }
-            currentColliders = shiftColliders(currentColliders,positionX,positionY);
-            previousCollider_H = currentColliders[0].h; 
+            previousCollider_H = currentColliders[0].h;
+            if ((currentColliders[0].w > previousCollider_W) && (direction == false))
+            {
+                positionX = positionX - (currentColliders[0].w - previousCollider_W);
+            }
+
+            currentColliders = shiftColliders(currentColliders, positionX, positionY);
+            previousCollider_W = currentColliders[0].w; 
 
             if ((positionX > 500) && (positionX < 1000)) offsetX = positionX - 500; 
         }
@@ -408,6 +538,12 @@ namespace Game
                 return false;
         }
 
+        public bool CollisionWithPlayers(Prototype other_player)
+        {
+            other_player.shiftColliders(other_player.currentColliders,other_player.positionX,other_player.positionY);
+            return checkCollision(other_player.currentColliders, currentColliders);
+        }
+
         private bool checkCollision(List<SDL.SDL_Rect> a, List<SDL.SDL_Rect> b )
         {
             //The sides of the rectangles
@@ -438,16 +574,42 @@ namespace Game
 
                     //If no sides from A are outside of B
 
-                    if( ( ( bottomA <= topB ) || ( topA >= bottomB ) || ( rightA <= leftB ) || ( leftA >= rightB ) ) == false )
+                    //if( ( ( (bottomA >= topB) && (bottomA <= bottomB) ) || ( (topA <= bottomB) && (topA >= topB) ) || ( (rightA >= leftB) && (rightA <= rightB) ) || ( (leftA <= rightB) && (leftA >= rightB) ) ) == true )
+                    //{
+                    //    //A collision is detected
+                    //    h += b[Bbox].h;
+                    //    //return b[Bbox].h;
+                    //    return true;
+                    //}
+                    bool colisX = false;
+                    for (int i = leftA; i <= rightA; i++)
                     {
-                        //A collision is detected
-                        h += b[Bbox].h;
-                        //return b[Bbox].h;
+                        for (int j = leftB; j <= rightB; j++)
+                        {
+                            if (i == j)
+                            {
+                                colisX = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (colisX == true)
+                    {
+                        for (int i = topA; i <= bottomA; i++)
+                        {
+                            for (int j = topB; j <= bottomB; j++)
+                            {
+                                if (i == j)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            return true;  //return h
+            return false;  //return h
         }
     }
 }

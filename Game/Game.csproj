@@ -48,6 +48,7 @@
     <Compile Include="PlayerDataPack.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Sonic.cs" />
+    <Compile Include="Text.cs" />
     <Compile Include="Texture.cs" />
     <Compile Include="Picture_for_render.cs" />
     <Compile Include="Prototype.cs" />

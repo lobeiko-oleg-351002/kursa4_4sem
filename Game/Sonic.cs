@@ -13,12 +13,38 @@ namespace Game
         public List<SDL.SDL_Rect> standColliders ;
         public List<SDL.SDL_Rect> walkColliders ;
         public List<SDL.SDL_Rect> jumpColliders ;
-        public void character_init()
+        public List<SDL.SDL_Rect> attackColliders;
+        public List<SDL.SDL_Rect> standTexture;
+        public List<SDL.SDL_Rect> walkTexture;
+        public List<SDL.SDL_Rect> jumpTexture;
+        public List<SDL.SDL_Rect> attackTexture;
+        public SDL.SDL_Rect takingDamageTexture;
+        public const int attackSpeed = 3000;
+        public const int attack_animationSpeed = 60;
+        public const int attackTime = 1;
+        public float attackTimer = attackTime;
+        public float recoveryTimer;
+        public int attackDirection;
+        public bool isAttacked;
+        public override void character_init()
         {
             standColliders = new List<SDL.SDL_Rect>();
             walkColliders = new List<SDL.SDL_Rect>();
             jumpColliders = new List<SDL.SDL_Rect>();
+            attackColliders = new List<SDL.SDL_Rect>();
 
+            standTexture = new List<SDL.SDL_Rect>();
+            walkTexture = new List<SDL.SDL_Rect>();
+            jumpTexture = new List<SDL.SDL_Rect>();
+            attackTexture = new List<SDL.SDL_Rect>();
+
+            character_id = 0;
+            currentHealth = 100;
+            maxHealth = 100;
+            damage = 2;
+            timeToRecovery = 1f;
+            recoveryTimer = timeToRecovery;
+            isAttacked = false;
 
             path_to_spritesheet = "sonic.png";
 
@@ -28,6 +54,8 @@ namespace Game
 
             velocity_status.walk = 300;
             velocity_status.jump = 1500;
+
+
 
             #region standTexture_init
             standTexture.Add(new SDL.SDL_Rect
@@ -213,6 +241,66 @@ namespace Game
             
             #endregion
 
+            #region attackTexture_init
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 281,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 312,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 342,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 372,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 402,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+
+            attackTexture.Add(new SDL.SDL_Rect
+            {
+                x = 432,
+                y = 108,
+                w = 30,
+                h = 27
+            });
+            #endregion
+
+            #region takingDamageTexture_init
+            takingDamageTexture = new SDL.SDL_Rect
+            {
+                x = 40,
+                y = 236,
+                w = 39,
+                h = 31
+            };
+            #endregion
+
             standColliders.Add(new SDL.SDL_Rect
             {
                 w = 31 * zoomOfTexture,
@@ -223,6 +311,12 @@ namespace Game
             {
                 w = 31 * zoomOfTexture,
                 h = 41 * zoomOfTexture
+            });
+
+            attackColliders.Add(new SDL.SDL_Rect
+            {
+                w = 30 * zoomOfTexture,
+                h = 27 * zoomOfTexture
             });
 
             jumpColliders.Add(new SDL.SDL_Rect
@@ -252,6 +346,12 @@ namespace Game
                     }
         }
 
+
+        public override void prepareAnimation_takingDamage(ref float currentFrame)
+        {
+            currentClip = takingDamageTexture;
+        }
+
         public override void prepareAnimation_walk(ref float currentFrame)
         {
             if ((int)currentFrame >= walkTexture.Count)
@@ -262,6 +362,15 @@ namespace Game
         }
 
         public override void prepareAnimation_jump(ref float currentFrame)
+        {
+            if ((int)currentFrame >= jumpTexture.Count)
+            {
+                currentFrame = 0;
+            }
+            currentClip = jumpTexture[(int)currentFrame];
+        }
+
+        public override void prepareAnimation_attack(ref float currentFrame)
         {
             if ((int)currentFrame >= jumpTexture.Count)
             {
@@ -283,6 +392,73 @@ namespace Game
         public override List<SDL.SDL_Rect> getJumpColliders()
         {
             return jumpColliders;
+        }
+
+        public override List<SDL.SDL_Rect> getAttackColliders()
+        {
+            return jumpColliders;
+        }
+
+        public override void a_press(ref float currentFrame)
+        {
+            currentColliders = getAttackColliders();
+            animationStatus = "attack";
+            if (direction == true)
+            {
+                attackDirection = -1;
+            }
+            else
+            {
+                attackDirection = 1;
+            }
+        }
+
+        private void returnToStand()
+        {
+            animationStatus = "stand";
+            velocityX = hidden_velocityX;
+            current_animationSpeed = animationSpeed.stand;
+            currentColliders = getStandColliders();
+        }
+        public override void isAttacking(float timestep)
+        {
+            attackTimer -= timestep;
+            if (attackTimer <= 0)
+            {
+                attackTimer = attackTime;
+                returnToStand();
+            }
+            else
+            {
+                velocityX = attackDirection * (int)(attackSpeed * attackTimer / attackTime);
+                current_animationSpeed = (int)(attack_animationSpeed *  attackTimer / attackTime);
+                
+            }
+        }
+
+        public override void takingDamage(float timestep, int newHealth)
+        {
+            if (newHealth < currentHealth)
+            {
+                if (isAttacked == false)
+                {
+                    animationStatus = "takingDamage";
+                    //prepareAnimation_takingDamage();
+                    velocityX *= -1;
+                    isAttacked = true;
+                    currentHealth = newHealth;
+                }
+            }
+            if (animationStatus == "takingDamage")
+            {
+                recoveryTimer -= timestep;
+                if (recoveryTimer <= 0)
+                {
+                    recoveryTimer = timeToRecovery;
+                    isAttacked = false;
+                    returnToStand();
+                }
+            }
         }
     }
 }

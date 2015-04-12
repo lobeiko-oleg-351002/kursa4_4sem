@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
+using SDL2;
 
 namespace Game
 {
@@ -13,12 +14,16 @@ namespace Game
     {
         public struct Data
         {
+            public int character_id;
             public byte id;
             public int positionX;
             public int positionY;
             public int animation_status;
             public bool direction;
             public int curframe;
+            public int attackedPlayer_id;
+            public int damage;
+            public int health;
         };
 
         public Data Info = new Data();
@@ -37,11 +42,23 @@ namespace Game
             {
                 Info.animation_status = 2;
             }
+            if (player.animationStatus == "attack")
+            {
+                Info.animation_status = 3;
+            }
+            if (player.animationStatus == "takingDamage")
+            {
+                Info.animation_status = 4;
+            }
             Info.curframe = (int)player.currentFrame;
             Info.direction = player.direction;
             Info.positionX = player.positionX;
             Info.positionY = player.positionY;
-            Info.id = (byte)player.id[0];
+            Info.character_id = player.character_id;
+            Info.id = player.id;
+            Info.damage = player.damage;
+            Info.attackedPlayer_id = player.attackedPlayer_id;
+            Info.health = player.currentHealth;
 
         }
 

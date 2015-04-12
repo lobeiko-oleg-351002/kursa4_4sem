@@ -154,16 +154,18 @@ namespace Game
                 Sonic player = new Sonic();
                 //.......
 
-                Sonic enemy = new Sonic();
-                enemy.character_init();
-                enemy.player_init(globalRenderer);
-                enemy.loading();
+                //Prototype enemy;
+                //enemy = new Sonic();
+                //enemy.character_init();
+                //enemy.player_init(globalRenderer);
+                //enemy.loading();
 
                 player.character_init();
                 player.player_init(globalRenderer);
                 player.loading();
 
                 List<PlayerDataPack.Data> import = new List<PlayerDataPack.Data>();
+                List<Prototype> players = new List<Prototype>();
 
                 PlayerDataPack curPack= new PlayerDataPack();
 
@@ -174,7 +176,7 @@ namespace Game
                     host.startServer();
                     
                 }
-                player.id = input;
+                player.id = (byte)input[0];
 
                 Client client = new Client();
 
@@ -191,11 +193,7 @@ namespace Game
                         player.handleEvent(e,timestep);
                     }
 
-                    timestep = stepTimer.getTicks();
 
-                    player.move(timestep, Map, wall.Colliders, ref offsetX, ref offsetY );
-
-                    stepTimer.start();
 
                     SDL.SDL_RenderClear(globalRenderer);
 
@@ -204,25 +202,55 @@ namespace Game
                     {
                         for (int j = 0; j < map_Width; j++)
                         {
-                            if (Map[i][j] == 'W') wall.renderSurface(globalRenderer, j, i, offsetX, offsetY);
+                            if (Map[i][j] == 'W')
+                            {
+                                wall.renderSurface(globalRenderer, j, i, offsetX, offsetY);
+                            }
                         }
                     }
+                    player.move(timestep, Map, wall.Colliders, players, ref offsetX, ref offsetY);
+                    
 
                     curPack.init(player);
-                    //import = client.exchangeData(curPack);
                     client.sendDataPack(curPack);
                     import = client.getOtherPlayerPacks();
-                   // Console.WriteLine(import.Count);
+                    if (import.Count > players.Count)
+                    {
+                        for (int i = players.Count; i < import.Count; i++)
+                        {
+                            switch (import[i].character_id)
+                            {
+                                case 0:
+                                    players.Add(new Sonic());
+                                    break;
+                                default:
+                                    players.Add(new Sonic());
+                                    break;
+                            }
+                            players[i].character_init();
+                            players[i].player_init(globalRenderer);
+                            players[i].loading();
+                        }
+                    }
                     for (int i = 0; i < import.Count; i++)
                     {
-                        enemy.importData(import[i]);
-                        //Console.WriteLine(i);
-                        //Console.WriteLine(import[i].id);
-                        //if (import[0].id == import[1].id) Console.WriteLine("asdf");
-                        enemy.render(offsetX, offsetY, timestep);
-                    }                                        
+                        players[i].importData(import[i]);
+                        if (players[i].id == player.id)
+                        {
+                            player.takingDamage(timestep/1000, players[i].currentHealth);
+                            //players[i].text.viewHealth(globalRenderer, players[i].currentHealth, players[i].maxHealth);
+                        }
+                        //Console.WriteLine(player.animationStatus);
+                        player.text.viewHealth(globalRenderer, player.currentHealth, player.maxHealth);
+                        players[i].render(offsetX, offsetY, timestep);
+                    }
+                    
+                    timestep = stepTimer.getTicks();
+                    //player.render(offsetX, offsetY, timestep);
 
-                    //player.render(offsetX,offsetY, timestep);
+
+                    stepTimer.start();
+
                     SDL.SDL_RenderPresent(globalRenderer);
                 }
             }
