@@ -146,12 +146,26 @@ namespace Game
 
 
                 string input;
-                
-                
-                
-                
-                //choose Sonic
-                Sonic player = new Sonic();
+
+
+                input = Console.ReadLine();
+                if (input == "host")
+                {
+                    Server host = new Server();
+                    host.startServer();
+
+                }
+
+
+                Prototype player;
+                if (input[1] == 'o')
+                {
+                    player = new Sonic();
+                }
+                else
+                {
+                    player = new Sketch();
+                }
                 //.......
 
                 //Prototype enemy;
@@ -169,13 +183,6 @@ namespace Game
 
                 PlayerDataPack curPack= new PlayerDataPack();
 
-                input = Console.ReadLine();
-                if (input == "host")
-                {
-                    Server host = new Server();
-                    host.startServer();
-                    
-                }
                 player.id = (byte)input[0];
 
                 Client client = new Client();
@@ -222,6 +229,9 @@ namespace Game
                             {
                                 case 0:
                                     players.Add(new Sonic());
+                                    break;
+                                case 1:
+                                    players.Add(new Sketch());
                                     break;
                                 default:
                                     players.Add(new Sonic());

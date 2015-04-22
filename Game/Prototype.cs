@@ -16,6 +16,7 @@ namespace Game
             public int stand;
             public int walk;
             public int jump;
+            public int attack;
         };
 
         public Box_animationSpeed animationSpeed;
@@ -48,7 +49,7 @@ namespace Game
         public float pressingJump;
         public int positionX, positionY;
         public int velocityX, velocityY, hidden_velocityX;
-        public bool direction, onGround;
+        public bool direction, onGround, isDead;
         public int timeratio_for_minijump;
         public byte id;
         public int character_id;
@@ -56,6 +57,7 @@ namespace Game
         public int damage, attackedPlayer_id;
         public float timeToRecovery;
         public Text text = new Text();
+        int deltaOffset;
         
         IntPtr renderer;
 
@@ -69,6 +71,7 @@ namespace Game
             velocityY = 0;
             animationStatus = "stand";
             onGround = false;
+            isDead = false;
             pressingJump = 0;
             current_animationSpeed = animationSpeed.stand;
             currentColliders = getStandColliders();
@@ -108,7 +111,18 @@ namespace Game
                 case 4:
                     {
                         prepareAnimation_takingDamage(ref currentFrame);
-                       // currentColliders = getAttackColliders();
+                        break;
+                    }
+                case 5:
+                    {
+                        prepareAnimation_death(ref currentFrame);
+                        currentColliders = getDeathColliders();
+                        break;
+                    }
+                case 6:
+                    {
+                        prepareAnimation_dead(ref currentFrame);
+                        currentColliders = getDeadColliders();
                         break;
                     }
             }
@@ -186,6 +200,11 @@ namespace Game
                         }
                         break;
                     }
+                    case SDL.SDL_Keycode.SDLK_a:
+                    {
+                        a_release(ref currentFrame);
+                        break;
+                    }
                 }
             }
             
@@ -197,14 +216,19 @@ namespace Game
         abstract public void prepareAnimation_jump(ref float currentFrame);
         abstract public void prepareAnimation_attack(ref float currentFrame);
         abstract public void prepareAnimation_takingDamage(ref float currentFrame);
+        abstract public void prepareAnimation_death(ref float currentFrame);
+        abstract public void prepareAnimation_dead(ref float currentFrame);
         abstract public List<SDL.SDL_Rect> getStandColliders();
         abstract public List<SDL.SDL_Rect> getWalkColliders();
         abstract public List<SDL.SDL_Rect> getJumpColliders();
         abstract public List<SDL.SDL_Rect> getAttackColliders();
+        abstract public List<SDL.SDL_Rect> getDeathColliders();
+        abstract public List<SDL.SDL_Rect> getDeadColliders();
         abstract public void a_press(ref float currentFrame);
-        //abstract public void a_release();
+        abstract public void a_release(ref float currentFrame);
         abstract public void isAttacking(float timestep);
         abstract public void takingDamage(float timestep, int newHealth);
+        abstract public void deathEvent(float timestep);
 
         private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
@@ -212,7 +236,7 @@ namespace Game
             int startPositionX = positionX;
             int shiftX_in_time;
 
-            for (shiftX_in_time = 1; shiftX_in_time <= Math.Abs(shiftX); shiftX_in_time++)
+            for (shiftX_in_time = 0; shiftX_in_time <= Math.Abs(shiftX); shiftX_in_time++)
             {
                 positionX = startPositionX;
                 if (velocityX > 0)
@@ -257,7 +281,7 @@ namespace Game
                     {
                         if (true == CollisionWithPlayers(players[i]))
                         {
-                            if (velocityX >= 0)
+                             if (velocityX >= 0)
                             {
                                 positionX -= 1;
                             }
@@ -301,58 +325,61 @@ namespace Game
                 }
 
                 currentColliders = shiftColliders(currentColliders, positionX, positionY);
-
-                if (true == CollisionWithWalls(Map, WallColliders))
+                if ((animationStatus != "death") && (animationStatus != "dead"))
                 {
+                    if (true == CollisionWithWalls(Map, WallColliders))
+                    {
 
-                    if (velocityY >= 0)
-                    {
-                        positionY -= 1;
-                        onGround = true;
-                        velocityY = 0;
-                    }
-                    else
-                    {
-                        if (animationStatus == "jump")
+                        if (velocityY >= 0)
                         {
+                            positionY -= 1;
+                            onGround = true;
                             velocityY = 0;
                         }
-                        positionY += 1;
-                    }
-                    break;
-                }
-                bool isColis = false;
-                for (int i = 0; i < players.Count; i++)
-                {
-                    if (players[i].id != id)
-                    {
-                        if (true == CollisionWithPlayers(players[i]))
+                        else
                         {
-                            if (velocityY >= 0)
+                            if (animationStatus == "jump")
                             {
-
-                                positionY -= 1;
-                                //Console.WriteLine("{0} {1} {2}", positionY, shiftY_in_time, velocityY);
-                                if (velocityY == 0) positionY--;
-                                onGround = true;
                                 velocityY = 0;
                             }
-                            else
+                            positionY += 1;
+                        }
+                        break;
+                    }
+
+                    bool isColis = false;
+                    for (int i = 0; i < players.Count; i++)
+                    {
+                        if (players[i].id != id)
+                        {
+                            if (true == CollisionWithPlayers(players[i]))
                             {
-                                if (animationStatus == "jump")
+                                if (velocityY >= 0)
                                 {
+
+                                    positionY -= 1;
+                                    //Console.WriteLine("{0} {1} {2}", positionY, shiftY_in_time, velocityY);
+                                    if (velocityY == 0) positionY--;
+                                    onGround = true;
                                     velocityY = 0;
                                 }
-                                positionY += 1;
+                                else
+                                {
+                                    if (animationStatus == "jump")
+                                    {
+                                        velocityY = 0;
+                                    }
+                                    positionY += 1;
+                                }
+                                isColis = true;
+                                break;
                             }
-                            isColis = true;
-                            break;
                         }
                     }
-                }
-                if (isColis == true)
-                {
-                    break;
+                    if (isColis == true)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -360,7 +387,7 @@ namespace Game
         public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players, ref int offsetX, ref int offsetY)
         {
             attackedPlayer_id = -1;
-            if ((animationStatus != "attack") && (animationStatus != "takingDamage"))
+            if ((animationStatus != "attack") && (animationStatus != "takingDamage") && (animationStatus != "death") && (animationStatus != "dead"))
             {
                 if ((0 == velocityX) && (true == onGround))
                 {
@@ -400,11 +427,15 @@ namespace Game
             else
             {
 
-                if (animationStatus == "attack") isAttacking(timestep / gameSpeed);
-                move_positionX(timestep, Map, WallColliders, players);
+                if (animationStatus == "attack")
+                {
+                    isAttacking(timestep / gameSpeed);
+                    move_positionX(timestep, Map, WallColliders, players);
+                }
             }
-
-            move_positionY(timestep, Map, WallColliders, players);  
+     
+          
+            move_positionY(timestep, Map, WallColliders, players);
             if (false == onGround)
             {
                 if (animationStatus == "walk" || animationStatus == "stand")
@@ -445,15 +476,44 @@ namespace Game
                 positionY = positionY - (currentColliders[0].h - previousCollider_H);
             }
             previousCollider_H = currentColliders[0].h;
-            if ((currentColliders[0].w > previousCollider_W) && (direction == false))
+            
+            //if (deltaOffset <> 0) deltaOffset = (currentColliders[0].w - previousCollider_W);
+            
+           // if (animationStatus != "attack")
+           // {
+            if ((currentColliders[0].w > previousCollider_W) && (direction == true))
             {
                 positionX = positionX - (currentColliders[0].w - previousCollider_W);
             }
+            if ((currentColliders[0].w < previousCollider_W) && (direction == true))
+            {
+                positionX = positionX - (currentColliders[0].w - previousCollider_W);
+            }
+            //if (currentColliders[0].w - previousCollider_W > 0)
+            //{
+            //    if (animationStatus == "attack") deltaOffset = (currentColliders[0].w - previousCollider_W);
+            //    else deltaOffset = 0;
+            //}
 
+            
+           // }
             currentColliders = shiftColliders(currentColliders, positionX, positionY);
-            previousCollider_W = currentColliders[0].w; 
 
-            if ((positionX > 500) && (positionX < 1000)) offsetX = positionX - 500; 
+            previousCollider_W = currentColliders[0].w;
+            if ((positionX > 500) && (positionX < 1000))
+            {
+            //    if (direction == true)
+            //    {
+            //        offsetX = positionX - 500 + deltaOffset;
+            //    }
+            //    else
+            //    {
+                    offsetX = positionX - 500;
+            //    }
+            }
+            
+            Console.WriteLine(deltaOffset);
+            //offsetX += deltaOffset;
         }
 
         private void close()
@@ -505,10 +565,17 @@ namespace Game
             //The row offset
             int r = 0;
             var bufSet = colliders[0];
+            int offset;
             //Go through the dot's collision boxes
             for( int set = 0; set < colliders.Count; set++ )
             {
-                bufSet.x = positionX;
+                offset = positionX;
+                //if (direction == false)
+                //{
+                //    offset = positionX + currentClip.w * zoomOfTexture - colliders[set].w ;
+                //}
+
+                bufSet.x = offset;
                 bufSet.y = positionY + r;
                 colliders[set] = bufSet ;
 

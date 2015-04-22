@@ -14,16 +14,21 @@ namespace Game
         public List<SDL.SDL_Rect> walkColliders ;
         public List<SDL.SDL_Rect> jumpColliders ;
         public List<SDL.SDL_Rect> attackColliders;
+        public List<SDL.SDL_Rect> deathColliders;
         public List<SDL.SDL_Rect> standTexture;
         public List<SDL.SDL_Rect> walkTexture;
         public List<SDL.SDL_Rect> jumpTexture;
         public List<SDL.SDL_Rect> attackTexture;
+        public SDL.SDL_Rect deathTexture;
         public SDL.SDL_Rect takingDamageTexture;
         public const int attackSpeed = 3000;
         public const int attack_animationSpeed = 60;
-        public const int attackTime = 1;
+        public const float attackTime = 0.5f;
+        public const int Sonic_damage = 2;
+        public const int Sonic_deathTime = 2;
+        public const int Sonic_recovery = 1;
         public float attackTimer = attackTime;
-        public float recoveryTimer;
+        public float recoveryTimer, animationDeath_timer;
         public int attackDirection;
         public bool isAttacked;
         public override void character_init()
@@ -32,6 +37,7 @@ namespace Game
             walkColliders = new List<SDL.SDL_Rect>();
             jumpColliders = new List<SDL.SDL_Rect>();
             attackColliders = new List<SDL.SDL_Rect>();
+            deathColliders = new List<SDL.SDL_Rect>();
 
             standTexture = new List<SDL.SDL_Rect>();
             walkTexture = new List<SDL.SDL_Rect>();
@@ -39,10 +45,10 @@ namespace Game
             attackTexture = new List<SDL.SDL_Rect>();
 
             character_id = 0;
-            currentHealth = 100;
-            maxHealth = 100;
-            damage = 2;
-            timeToRecovery = 1f;
+            maxHealth = 50;
+            currentHealth = maxHealth;
+            //damage = 2;
+            timeToRecovery = Sonic_recovery;
             recoveryTimer = timeToRecovery;
             isAttacked = false;
 
@@ -301,6 +307,16 @@ namespace Game
             };
             #endregion
 
+            #region deathTexture_init
+            deathTexture = new SDL.SDL_Rect
+            {
+                x = 184,
+                y = 138,
+                w = 33,
+                h = 40
+            };
+            #endregion
+
             standColliders.Add(new SDL.SDL_Rect
             {
                 w = 31 * zoomOfTexture,
@@ -323,6 +339,12 @@ namespace Game
             {
                 w = 30 * zoomOfTexture,
                 h = 30 * zoomOfTexture
+            });
+
+            deathColliders.Add(new SDL.SDL_Rect
+            {
+                w = 0,
+                h = 0
             });
 
             timeratio_for_minijump = 1000;
@@ -350,6 +372,14 @@ namespace Game
         public override void prepareAnimation_takingDamage(ref float currentFrame)
         {
             currentClip = takingDamageTexture;
+        }
+        public override void prepareAnimation_death(ref float currentFrame)
+        {
+            currentClip = deathTexture;
+        }
+        public override void prepareAnimation_dead(ref float currentFrame)
+        {
+            currentClip = deathTexture;
         }
 
         public override void prepareAnimation_walk(ref float currentFrame)
@@ -399,10 +429,20 @@ namespace Game
             return jumpColliders;
         }
 
+        public override List<SDL.SDL_Rect> getDeathColliders()
+        {
+            return deathColliders;
+        }
+        public override List<SDL.SDL_Rect> getDeadColliders()
+        {
+            return deathColliders;
+        }
+
         public override void a_press(ref float currentFrame)
         {
             currentColliders = getAttackColliders();
             animationStatus = "attack";
+            damage += Sonic_damage;
             if (direction == true)
             {
                 attackDirection = -1;
@@ -411,6 +451,11 @@ namespace Game
             {
                 attackDirection = 1;
             }
+        }
+        
+        public override void a_release(ref float currentFrame)
+        {
+            damage -= Sonic_damage;
         }
 
         private void returnToStand()
@@ -438,7 +483,8 @@ namespace Game
 
         public override void takingDamage(float timestep, int newHealth)
         {
-            if (newHealth < currentHealth)
+            //Console.WriteLine("{0} {1}", currentHealth, animationStatus);
+            if (newHealth < currentHealth) 
             {
                 if (isAttacked == false)
                 {
@@ -454,11 +500,48 @@ namespace Game
                 recoveryTimer -= timestep;
                 if (recoveryTimer <= 0)
                 {
-                    recoveryTimer = timeToRecovery;
+                    recoveryTimer = Sonic_recovery;
                     isAttacked = false;
                     returnToStand();
                 }
             }
+            if (currentHealth <= 0)
+            {
+                currentHealth = 0;
+                deathEvent(timestep);
+            }
         }
+
+        public override void deathEvent(float timestep)
+        {
+            if (isDead == false)
+            {
+                currentColliders = deathColliders;
+                animationStatus = "death";
+                isDead = true;
+                animationDeath_timer = Sonic_deathTime;
+                velocityX = 0;
+                velocityY = -velocity_status.jump;
+            }
+            if (animationStatus == "death")
+            {
+                recoveryTimer -= timestep;
+                if (recoveryTimer <= 0)
+                {
+                    animationDeath_timer -= timestep;
+                    if (animationDeath_timer < 1.3f)
+                    {
+                        velocityY *= -1;
+                    }
+                    if (animationDeath_timer <= 0)
+                    {
+                        animationStatus = "dead";
+                        velocityX = 0;
+                        velocityY = 0;
+                    }
+                }
+            }
+        }
+
     }
 }

@@ -50,6 +50,14 @@ namespace Game
             {
                 Info.animation_status = 4;
             }
+            if (player.animationStatus == "death")
+            {
+                Info.animation_status = 5;
+            }
+            if (player.animationStatus == "dead")
+            {
+                Info.animation_status = 6;
+            }
             Info.curframe = (int)player.currentFrame;
             Info.direction = player.direction;
             Info.positionX = player.positionX;
@@ -58,7 +66,9 @@ namespace Game
             Info.id = player.id;
             Info.damage = player.damage;
             Info.attackedPlayer_id = player.attackedPlayer_id;
-            Info.health = player.currentHealth;
+            //Console.WriteLine(player.attackedPlayer_id);
+           // Info.health = player.currentHealth;
+            //Console.WriteLine(player.currentHealth);
 
 
         }

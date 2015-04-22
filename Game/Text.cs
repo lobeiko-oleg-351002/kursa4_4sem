@@ -20,7 +20,7 @@ namespace Game
             else
             {
                 //SDL.SDL_RenderClear(renderer);
-                Console.WriteLine("{0}/{1}",currentHealth, maxHealth);
+               // Console.WriteLine("{0}/{1}",currentHealth, maxHealth);
                 IntPtr font = SDL_ttf.TTF_OpenFont("arial.ttf", 24);
                 string error = SDL.SDL_GetError();
                 SDL.SDL_Color color = new SDL.SDL_Color();

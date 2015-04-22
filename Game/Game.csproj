@@ -47,6 +47,7 @@
     <Compile Include="Client.cs" />
     <Compile Include="PlayerDataPack.cs" />
     <Compile Include="Server.cs" />
+    <Compile Include="Sketch.cs" />
     <Compile Include="Sonic.cs" />
     <Compile Include="Text.cs" />
     <Compile Include="Texture.cs" />

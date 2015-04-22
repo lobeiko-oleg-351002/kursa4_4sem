@@ -87,7 +87,7 @@ namespace Game
 
             //int countOfBytes = handler.Receive(bytesInfo);
             playerDataPack.bytesToInfo(bytesInfo);
-
+            int hp;
             pack = playerDataPack.Info;
             bool newClient = true;
             int numClient = 0;
@@ -104,10 +104,13 @@ namespace Game
 
             if (newClient == true)
             {
+                pack.health = 50;
                 playersData.Add(pack);
             }
             else
             {
+                hp = playersData[numClient].health;
+                pack.health = hp;
                 playersData[numClient] = pack;
             }
             takingDamage(pack);
@@ -115,13 +118,18 @@ namespace Game
 
         private void takingDamage(PlayerDataPack.Data pack)
         {
+            //Console.WriteLine(pack.attackedPlayer_id);
             for (int i = 0; i < playersData.Count; i++)
             {
+                //Console.WriteLine("{0} {1} {2}", playersData[i].id, playersData[i].health, pack.damage);
                 if (pack.attackedPlayer_id == playersData[i].id)
                 {
                     PlayerDataPack.Data buf = playersData[i];
+                    
                     buf.health -= pack.damage;
+                    
                     playersData[i] = buf;
+                    
                 }
             }
         }
