@@ -43,7 +43,7 @@ namespace Game
             walkTexture = new List<SDL.SDL_Rect>();
             jumpTexture = new List<SDL.SDL_Rect>();
             attackTexture = new List<SDL.SDL_Rect>();
-
+            attackRange = 0;
             character_id = 0;
             maxHealth = 50;
             currentHealth = maxHealth;
@@ -319,13 +319,13 @@ namespace Game
 
             standColliders.Add(new SDL.SDL_Rect
             {
-                w = 31 * zoomOfTexture,
+                w = 30 * zoomOfTexture,
                 h = 41 * zoomOfTexture
             });
 
             walkColliders.Add(new SDL.SDL_Rect
             {
-                w = 31 * zoomOfTexture,
+                w = 30 * zoomOfTexture,
                 h = 41 * zoomOfTexture
             });
 

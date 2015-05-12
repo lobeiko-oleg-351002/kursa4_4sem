@@ -15,13 +15,14 @@ namespace Game
         public Socket sListener;
         private byte[] separator = new byte[] {4,4,4,4};
         List<PlayerDataPack.Data> playersData = new List<PlayerDataPack.Data>();
+        List<string> names = new List<string>();
         PlayerDataPack.Data pack = new PlayerDataPack.Data();
         PlayerDataPack playerDataPack = new PlayerDataPack();
         byte[] bytes = new byte[1024];
         byte[] bytesInfo = new byte[1024];
-        byte[] sendBytes = new byte[1024];
-        byte[] bufBytes = new byte[1024];
+        Socket handler;
         int sendBytes_length = 0;
+        byte countOfClients = 0;
         public void startServer()
         {
 
@@ -43,9 +44,9 @@ namespace Game
                 // Начинаем слушать соединения
                 while (true)
                 {
-
+                    
                     // Программа приостанавливается, ожидая входящее соединение
-                    Socket handler = sListener.Accept();
+                    handler = sListener.Accept();
 
                     // Мы дождались клиента, пытающегося с нами соединиться
 
@@ -59,6 +60,9 @@ namespace Game
                             break;
                         case 1:
                             sendPacks(handler);
+                            break;
+                        case 2:
+                            getName(handler,bytes,bytesRec);
                             break;
 
                     }
@@ -76,43 +80,73 @@ namespace Game
             }
         }
 
-        private void getPlayerDataPack(Socket handler, byte[] bytes, int countOfBytes)
+        public void stopServer()
         {
-           
-           
+            handler.Shutdown(SocketShutdown.Both);
+            handler.Close();
+        }
+
+        private void getName(Socket handler, byte[] bytes, int countOfBytes)
+        {
+            byte[] bytesInfo = new byte[255];
+            string name = Encoding.UTF8.GetString(bytes, 1, countOfBytes);
+            bool newClient = true;
+            StringComparer strcmp;
+            for (int i = 0; i < names.Count; i++)
+            {
+                if (name.CompareTo(names[i]) == 0)
+                {
+                    newClient = false;
+                    break;
+                }
+            }
+            if (newClient == true)
+            {
+                names.Add(name);
+                pack.id = countOfClients;
+                pack.health = 50;
+                pack.character_id = -1;
+                playersData.Add(pack);
+                countOfClients++;
+            }
+            sendNames(handler);
+        }
+
+        private void sendNames(Socket handler)
+        {
+            byte[] sendBytes = new byte[1024];
+            byte[] bufBytes = new byte[1024];
+            sendBytes_length = 0;
+            string name;
+            for (int i = 0; i < names.Count; i++)
+            {
+                name = names[i];
+                byte[] bytes = Encoding.UTF8.GetBytes(name);
+
+                bufBytes = bytes.Concat(separator).ToArray();
+                for (int j = sendBytes_length; j < bufBytes.Length + sendBytes_length; j++)
+                {
+                    sendBytes[j] = bufBytes[j - sendBytes_length];
+                }
+                sendBytes_length += bufBytes.Length;
+            }
+            handler.Send(sendBytes);
+        }
+        private void getPlayerDataPack(Socket handler, byte[] bytes, int countOfBytes)
+        {         
             for (int i = 1; i < countOfBytes; i++)
             {
                 bytesInfo[i - 1] = bytes[i];
             }
-
-            //int countOfBytes = handler.Receive(bytesInfo);
             playerDataPack.bytesToInfo(bytesInfo);
             int hp;
+            int id;
             pack = playerDataPack.Info;
-            bool newClient = true;
-            int numClient = 0;
             
-            for (int i = 0; i < playersData.Count; i++)
-            {
-                if (pack.id == playersData[i].id)
-                {
-                    newClient = false;
-                    numClient = i;
-                    break;
-                }
-            }
-
-            if (newClient == true)
-            {
-                pack.health = 50;
-                playersData.Add(pack);
-            }
-            else
-            {
-                hp = playersData[numClient].health;
-                pack.health = hp;
-                playersData[numClient] = pack;
-            }
+            hp = playersData[pack.id].health;
+            
+            pack.health = hp;
+            playersData[pack.id] = pack;
             takingDamage(pack);
         }
 
@@ -134,61 +168,31 @@ namespace Game
             }
         }
 
-        private void sendAmountOfPacks()
-        {
-            Socket handler = sListener.Accept();
-            //byte[] bytes = new byte[1024];
-            bytes = BitConverter.GetBytes(playersData.Count);
-            handler.Send(bytes);
-            handler.Shutdown(SocketShutdown.Both);
-            handler.Close();
-
-        }
 
         private void sendPacks(Socket handler)
         {
-            //byte[] bytes = new byte[1024];
-            //byte[] sendBytes = new byte[1024];
             sendBytes_length = 0;
-            //byte[] bufBytes = new byte[1024];
-           // bytes[0] = (byte)playersData.Count;
-            //handler.Send(bytes);
-            //Console.WriteLine(playersData.Count);
+            byte[] sendBytes = new byte[1024];
+            byte[] bufBytes = new byte[1024];
             for (int i = 0; i < playersData.Count; i++)
             {
-                playerDataPack.Info = playersData[i];
-                bytes = playerDataPack.InfoToBytes();
-                
-                bufBytes = bytes.Concat(separator).ToArray();
-                for (int j = sendBytes_length; j < bufBytes.Length + sendBytes_length; j++)
+                if (playersData[i].character_id != -1)
                 {
-                    sendBytes[j] = bufBytes[j - sendBytes_length];
-                }
-                sendBytes_length += bufBytes.Length;
+                    playerDataPack.Info = playersData[i];
+                    bytes = playerDataPack.InfoToBytes();
 
+                    bufBytes = bytes.Concat(separator).ToArray();
+                    for (int j = sendBytes_length; j < bufBytes.Length + sendBytes_length; j++)
+                    {
+                        sendBytes[j] = bufBytes[j - sendBytes_length];
+                    }
+                    sendBytes_length += bufBytes.Length;
+                }
             }
             handler.Send(sendBytes);
         }
 
 
-        static byte[] ConvertToByteArray(List<PlayerDataPack.Data> list)
-        {
-
-            Encoding encode = Encoding.ASCII;
-
-            List<byte> listByte = new List<byte>();
-            string[] ResultCollectionArray = list.Select(i => i.ToString()).ToArray<string>();
-
-            foreach (var item in ResultCollectionArray)
-            {
-                foreach (byte b in encode.GetBytes(item))
-                    listByte.Add(b);
-                
-            }
-
-            return listByte.ToArray();
-
-        }
         
         
     }

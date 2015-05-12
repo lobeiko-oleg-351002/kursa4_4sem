@@ -43,7 +43,8 @@ namespace Game
 	        else
             {
 		        //Color key image
-                //SDL.SDL_SetColorKey(loadedSurface, (int)SDL.SDL_bool.SDL_TRUE, SDL.SDL_MapRGB(pointer_pixelformat, 0, 0xFF, 0xFF));//SDL.SDL_bool.SDL_TRUE against 1
+                //IntPtr optimizedImage = SDL(loadedSurface);
+                //SDL.SDL_SetColorKey(loadedSurface, 1, SDL.SDL_MapRGB(loadedSurface, 0, 0xFF, 0xFF));//SDL.SDL_bool.SDL_TRUE against 1
                 //SDL.SDL_MapRGB(loadedSurface, 0, 0xFF, 0xFF);
 		        //Create texture from surface pixels
                 newTexture = SDL.SDL_CreateTextureFromSurface( globalRenderer, loadedSurface );

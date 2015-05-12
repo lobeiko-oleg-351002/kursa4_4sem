@@ -20,12 +20,12 @@ namespace Game
         public List<SDL.SDL_Rect> jump_in_action_Texture;
         public List<SDL.SDL_Rect> riseTexture;
         public List<SDL.SDL_Rect> attackTexture_hands;
-        public SDL.SDL_Rect deathTexture;
+        public List<SDL.SDL_Rect> deathTexture;
         public SDL.SDL_Rect takingDamageTexture;
         public const int attackSpeed = 3000;
         public const float attackTime = 10f;
         public const int Sketch_damage = 5;
-        public const int Sketch_deathTime = 2;
+        public const int Sketch_deathTime = 1;
         public const int Sketch_recovery = 1;
         public float attackTimer = attackTime;
         public float recoveryTimer, animationDeath_timer;
@@ -46,7 +46,8 @@ namespace Game
             attackTexture_hands = new List<SDL.SDL_Rect>();
             riseTexture = new List<SDL.SDL_Rect>();
             jump_in_action_Texture = new List<SDL.SDL_Rect>();
-
+            deathTexture = new List<SDL.SDL_Rect>();
+            attackRange = 50;
             character_id = 1;
             maxHealth = 50;
             currentHealth = maxHealth;
@@ -331,21 +332,61 @@ namespace Game
             #region takingDamageTexture_init
             takingDamageTexture = new SDL.SDL_Rect
             {
-                x = 40,
-                y = 236,
-                w = 39,
-                h = 31
+                x = 24,
+                y = 2740,
+                w = 68,
+                h = 71
             };
             #endregion
 
             #region deathTexture_init
-            deathTexture = new SDL.SDL_Rect
+            deathTexture.Add(new SDL.SDL_Rect
             {
-                x = 184,
-                y = 138,
-                w = 33,
-                h = 40
-            };
+                x = 109,
+                y = 2750,
+                w = 69,
+                h = 63
+            });
+
+            deathTexture.Add(new SDL.SDL_Rect
+            {
+                x = 200,
+                y = 2750,
+                w = 78,
+                h = 63
+            });
+
+            deathTexture.Add(new SDL.SDL_Rect
+            {
+                x = 297,
+                y = 2750,
+                w = 69,
+                h = 63
+            });
+
+            deathTexture.Add(new SDL.SDL_Rect
+            {
+                x = 379,
+                y = 2750,
+                w = 91,
+                h = 63
+            });
+
+            deathTexture.Add(new SDL.SDL_Rect
+            {
+                x = 481,
+                y = 2750,
+                w = 88,
+                h = 63
+            });
+
+            deathTexture.Add(new SDL.SDL_Rect
+            {
+                x = 576,
+                y = 2750,
+                w = 84,
+                h = 63
+            });
             #endregion
 
             #region jump_in_action_Texture_init
@@ -430,13 +471,13 @@ namespace Game
 
             walkColliders.Add(new SDL.SDL_Rect
             {
-                w = 52 * zoomOfTexture,
+                w = 49 * zoomOfTexture,
                 h = 68 * zoomOfTexture
             });
 
             attackColliders.Add(new SDL.SDL_Rect
             {
-                w = 60 * zoomOfTexture,
+                w = 49 * zoomOfTexture,
                 h = 68 * zoomOfTexture
             });
 
@@ -448,8 +489,8 @@ namespace Game
 
             deathColliders.Add(new SDL.SDL_Rect
             {
-                w = 0,
-                h = 0
+                w = 100 * zoomOfTexture,
+                h = 30 * zoomOfTexture
             });
 
             timeratio_for_minijump = 0;
@@ -485,11 +526,15 @@ namespace Game
         }
         public override void prepareAnimation_death(ref float currentFrame)
         {
-            currentClip = deathTexture;
+            if ((int)currentFrame >= deathTexture.Count)
+            {
+                currentFrame = 5;
+            }
+            currentClip = deathTexture[(int)currentFrame];
         }
         public override void prepareAnimation_dead(ref float currentFrame)
         {
-            currentClip = deathTexture;
+            currentClip = deathTexture[3];
         }
 
         public override void prepareAnimation_walk(ref float currentFrame)
@@ -647,33 +692,31 @@ namespace Game
 
         public override void deathEvent(float timestep)
         {
-            //if (isDead == false)
-            //{
-            //    currentColliders = deathColliders;
-            //    animationStatus = "death";
-            //    isDead = true;
-            //    animationDeath_timer = Sonic_deathTime;
-            //    velocityX = 0;
-            //    velocityY = -velocity_status.jump;
-            //}
-            //if (animationStatus == "death")
-            //{
-            //    recoveryTimer -= timestep;
-            //    if (recoveryTimer <= 0)
-            //    {
-            //        animationDeath_timer -= timestep;
-            //        if (animationDeath_timer < 1.3f)
-            //        {
-            //            velocityY *= -1;
-            //        }
-            //        if (animationDeath_timer <= 0)
-            //        {
-            //            animationStatus = "dead";
-            //            velocityX = 0;
-            //            velocityY = 0;
-            //        }
-            //    }
-            //}
+            if (isDead == false)
+            {
+                currentColliders = deathColliders;
+                animationStatus = "death";
+                isDead = true;
+                animationDeath_timer = Sketch_deathTime;
+                velocityX = 0;
+                velocityY = 0;
+                //velocityY = -velocity_status.jump;
+            }
+            if (animationStatus == "death")
+            {
+                recoveryTimer -= timestep;
+                if (recoveryTimer <= 0)
+                {
+                    animationDeath_timer -= timestep;
+
+                    if (animationDeath_timer <= 0)
+                    {
+                        animationStatus = "dead";
+                        velocityX = 0;
+                        velocityY = 0;
+                    }
+                }
+            }
         }
     }
 }

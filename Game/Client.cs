@@ -17,6 +17,12 @@ namespace Game
         byte[] bytes = new byte[128]; 
         int count;
         byte[] subBytes = new byte[128];
+        string IPhost;
+
+        public Client(string IPhost)
+        {
+            this.IPhost = IPhost;
+        }
         public void sendPackToServer( Socket sender, PlayerDataPack export)
         {
             // Буфер для входящих данных
@@ -67,8 +73,52 @@ namespace Game
             byte[] bytes = new byte[1024];
             List<PlayerDataPack.Data> dataList = new List<PlayerDataPack.Data>();
             PlayerDataPack pack = new PlayerDataPack();
+            // int count;
+            count = sender.Receive(bytes);
+            byte[] subBytes = new byte[1024];
+            int subBytes_length = -1;
+
+            for (int i = 0; i < count; i++)
+            {
+                int j;
+                for (j = i; i <= i + 3; j++)
+                {
+                    if (bytes[j] != 4)              // разделитель - 4 4 4 4
+                    {
+                        break;
+                    }
+                }
+                if (j != i + 4)
+                {
+                    subBytes_length++;
+                    subBytes[subBytes_length] = bytes[i];
+                }
+                else
+                {
+                    i = i + 3;
+                    pack.bytesToInfo(subBytes);
+                    dataList.Add(pack.Info);
+
+                    subBytes = new byte[1024];
+                    subBytes_length = -1;
+                }
+            }
+            sender.Shutdown(SocketShutdown.Both);
+            sender.Close();
+            return dataList;
+        }
+
+        public List<string> getOtherPlayerNames(Socket sender)
+        {
+            //Socket sender = initConnection();
+            //sendCommandToSendAmountOfPacks(sender);
+            byte[] bytes = new byte[1024];
+            List<string> nameList = new List<string>();
+            string name;
            // int count;
             count = sender.Receive(bytes);
+            sender.Shutdown(SocketShutdown.Both);
+            sender.Close();
             byte[] subBytes = new byte[1024];
             int subBytes_length = -1;
 
@@ -90,28 +140,14 @@ namespace Game
                 else
                 {
                     i = i + 3;
-                    pack.bytesToInfo(subBytes);
-                    dataList.Add(pack.Info);
+                    name = Encoding.UTF8.GetString(subBytes, 0, subBytes_length);
+                    nameList.Add(name);
 
                     subBytes = new byte[1024];
                     subBytes_length = -1;
                 }
             }
-
-            
-
-            //int countOfPlayers = bytes[0];
-            //for (int i = 0; i < countofplayers; i++)
-            //{
-            //    count = sender.receive(bytes);
-            //    pack.bytestoinfo(bytes);
-            //    datalist.add(pack.info);
-            //}
-
-            // Освобождаем сокет
-            sender.Shutdown(SocketShutdown.Both);
-            sender.Close();
-            return dataList;
+            return nameList;
         }
 
         public void sendDataPack(PlayerDataPack export)
@@ -130,32 +166,13 @@ namespace Game
             }
         }
 
-        
-
-        public int getAmountOfPacks()
-        {          
-            try
-            {
-                //sendCommandToSendAmountOfPacks();
-                //byte[] bytes = new byte[1024];
-                Socket sender = initConnection();
-                count = sender.Receive(bytes);
-                // return BitConverter.ToInt32(bytes);
-                return bytes[0];
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                return 0;
-            }
-        }
+       
 
         public void sendCommandToSendAmountOfPacks(Socket sender)
         {
             byte[] bytes = new byte[1];
             bytes[0] = 1;
             count = sendMessage(sender, bytes);
-
         }
 
         public void sendCommandToSendPacks()
@@ -179,11 +196,23 @@ namespace Game
 
         private Socket initConnection()
         {
-            IPAddress ipAddr = IPAddress.Parse("127.0.0.1");
+            IPAddress ipAddr = IPAddress.Parse(IPhost);
             IPEndPoint ipEndPoint = new IPEndPoint(ipAddr, free_port);
             Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
             sender.Connect(ipEndPoint);
             return sender;
+        }
+
+        public List<string> namesExchange(string name)
+        {
+            byte[] msg = Encoding.UTF8.GetBytes(name);
+            Socket sender = initConnection();
+            byte[] command = new byte[1];
+            command[0] = 2;
+            msg = command.Concat(msg).ToArray();
+            sender.Send(msg);
+            return getOtherPlayerNames(sender);
+
         }
 
         private int sendMessage(Socket sender, byte[] message)

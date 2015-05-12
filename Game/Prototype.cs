@@ -51,13 +51,14 @@ namespace Game
         public int velocityX, velocityY, hidden_velocityX;
         public bool direction, onGround, isDead;
         public int timeratio_for_minijump;
-        public byte id;
+        public int id;
         public int character_id;
         public int currentHealth, maxHealth;
         public int damage, attackedPlayer_id;
         public float timeToRecovery;
         public Text text = new Text();
         int deltaOffset;
+        public int attackRange;
         
         IntPtr renderer;
 
@@ -75,6 +76,7 @@ namespace Game
             pressingJump = 0;
             current_animationSpeed = animationSpeed.stand;
             currentColliders = getStandColliders();
+            id = -1;
         }
 
         public void importData(PlayerDataPack.Data import)
@@ -131,6 +133,7 @@ namespace Game
             currentColliders = shiftColliders(currentColliders, positionX, positionY);
             id = import.id;
             currentHealth = import.health;
+            character_id = import.character_id;
         }
 
         public void handleEvent(SDL.SDL_Event e, float timestep)
@@ -232,20 +235,36 @@ namespace Game
 
         private void move_positionX(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
-            int shiftX = (int)Math.Ceiling(velocityX * timestep / gameSpeed);
+            int shiftX = Math.Abs((int)Math.Ceiling(velocityX * timestep / gameSpeed));
             int startPositionX = positionX;
             int shiftX_in_time;
+            if (animationStatus == "attack")
+            {
+                    shiftX += attackRange;               
+            }
 
-            for (shiftX_in_time = 0; shiftX_in_time <= Math.Abs(shiftX); shiftX_in_time++)
+
+            for (shiftX_in_time = 1; shiftX_in_time <= shiftX; shiftX_in_time++)
             {
                 positionX = startPositionX;
                 if (velocityX > 0)
                 {
                     positionX += shiftX_in_time;
                 }
-                else
+                if (velocityX < 0)
                 {
                     positionX -= shiftX_in_time;
+                }
+                if ((animationStatus == "attack") && (attackRange != 0))
+                {
+                    if (direction == false)
+                    {
+                        positionX += shiftX_in_time;
+                    }
+                    else
+                    {
+                        positionX -= shiftX_in_time;
+                    }
                 }
                 
                 if (positionX <= 0)                         //костыль исправить
@@ -303,12 +322,17 @@ namespace Game
                     break;
                 }
             }
+            if ((animationStatus == "attack") && (attackRange != 0))
+            {
+                positionX = startPositionX;
+            }
         }
 
-        private void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
+        public void move_positionY(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players)
         {
             onGround = false;
-            velocityY += (int)(gravity * timestep);
+
+            velocityY += (int)(gravity * timestep);          
             int shiftY = (int)Math.Ceiling(velocityY * timestep / gameSpeed);
             int startPositionY = positionY;
             int shiftY_in_time;
@@ -325,7 +349,7 @@ namespace Game
                 }
 
                 currentColliders = shiftColliders(currentColliders, positionX, positionY);
-                if ((animationStatus != "death") && (animationStatus != "dead"))
+                if (((animationStatus == "death") && (character_id == 0)) == false)
                 {
                     if (true == CollisionWithWalls(Map, WallColliders))
                     {
@@ -387,6 +411,14 @@ namespace Game
         public void move(float timestep, string[] Map, List<SDL.SDL_Rect> WallColliders, List<Prototype> players, ref int offsetX, ref int offsetY)
         {
             attackedPlayer_id = -1;
+            if ((currentColliders[0].w > previousCollider_W) && (direction == true))
+            {
+                positionX = positionX + (currentColliders[0].w - previousCollider_W);
+            }
+            if ((currentColliders[0].w < previousCollider_W) && (direction == true))
+            {
+                positionX = positionX + (currentColliders[0].w - previousCollider_W);
+            }
             if ((animationStatus != "attack") && (animationStatus != "takingDamage") && (animationStatus != "death") && (animationStatus != "dead"))
             {
                 if ((0 == velocityX) && (true == onGround))
@@ -477,29 +509,14 @@ namespace Game
             }
             previousCollider_H = currentColliders[0].h;
             
-            //if (deltaOffset <> 0) deltaOffset = (currentColliders[0].w - previousCollider_W);
-            
-           // if (animationStatus != "attack")
-           // {
-            if ((currentColliders[0].w > previousCollider_W) && (direction == true))
-            {
-                positionX = positionX - (currentColliders[0].w - previousCollider_W);
-            }
-            if ((currentColliders[0].w < previousCollider_W) && (direction == true))
-            {
-                positionX = positionX - (currentColliders[0].w - previousCollider_W);
-            }
-            //if (currentColliders[0].w - previousCollider_W > 0)
-            //{
-            //    if (animationStatus == "attack") deltaOffset = (currentColliders[0].w - previousCollider_W);
-            //    else deltaOffset = 0;
-            //}
 
             
-           // }
+
             currentColliders = shiftColliders(currentColliders, positionX, positionY);
 
+
             previousCollider_W = currentColliders[0].w;
+ 
             if ((positionX > 500) && (positionX < 1000))
             {
             //    if (direction == true)
@@ -512,7 +529,6 @@ namespace Game
             //    }
             }
             
-            Console.WriteLine(deltaOffset);
             //offsetX += deltaOffset;
         }
 

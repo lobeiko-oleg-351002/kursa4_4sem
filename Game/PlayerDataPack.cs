@@ -15,7 +15,7 @@ namespace Game
         public struct Data
         {
             public int character_id;
-            public byte id;
+            public int id;
             public int positionX;
             public int positionY;
             public int animation_status;
@@ -86,25 +86,11 @@ namespace Game
 
         public void bytesToInfo(byte[] bytes)
         {
-           // PlayerDataPack info = new PlayerDataPack();
             int size = Marshal.SizeOf(typeof(Data));
             IntPtr ptr = Marshal.AllocHGlobal(size);
             Marshal.Copy(bytes, 0, ptr, size);
             Info = (Data)Marshal.PtrToStructure(ptr, Info.GetType());
             Marshal.FreeHGlobal(ptr);
-        }
-
-        public List<PlayerDataPack.Data> bytesToListOfStruct(byte[] bytes)
-        {
-            BinaryFormatter bf = new BinaryFormatter();
-            List<PlayerDataPack.Data> list = new List<PlayerDataPack.Data>();
-            using (Stream ms = new MemoryStream(bytes))
-            {
-                list = (List<PlayerDataPack.Data>)bf.Deserialize(ms);
-
-            }
-            return list;
-
         }
         
     }
