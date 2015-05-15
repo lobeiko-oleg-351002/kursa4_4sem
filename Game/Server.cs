@@ -52,11 +52,12 @@ namespace Game
 
                     
                     int bytesRec = handler.Receive(bytes);
-
+                    
                     switch (bytes[0])
                     {
                         case 0:
                             getPlayerDataPack(handler,bytes,bytesRec);
+                            
                             break;
                         case 1:
                             sendPacks(handler);
@@ -89,9 +90,16 @@ namespace Game
         private void getName(Socket handler, byte[] bytes, int countOfBytes)
         {
             byte[] bytesInfo = new byte[255];
-            string name = Encoding.UTF8.GetString(bytes, 1, countOfBytes);
+            byte[] bufBytes = new byte[countOfBytes-1];
+            for (int i = 1; i <= countOfBytes-1; i++)
+            {
+                bufBytes[i - 1] = bytes[i];
+            }
+            string name = Encoding.Unicode.GetString(bufBytes);
+
             bool newClient = true;
             StringComparer strcmp;
+            //Console.WriteLine(name);
             for (int i = 0; i < names.Count; i++)
             {
                 if (name.CompareTo(names[i]) == 0)
@@ -121,7 +129,7 @@ namespace Game
             for (int i = 0; i < names.Count; i++)
             {
                 name = names[i];
-                byte[] bytes = Encoding.UTF8.GetBytes(name);
+                byte[] bytes = Encoding.Unicode.GetBytes(name);
 
                 bufBytes = bytes.Concat(separator).ToArray();
                 for (int j = sendBytes_length; j < bufBytes.Length + sendBytes_length; j++)
@@ -156,7 +164,7 @@ namespace Game
             for (int i = 0; i < playersData.Count; i++)
             {
                 //Console.WriteLine("{0} {1} {2}", playersData[i].id, playersData[i].health, pack.damage);
-                if (pack.attackedPlayer_id == playersData[i].id)
+                if ((pack.attackedPlayer_id == playersData[i].id) && (playersData[i].animation_status != 4))
                 {
                     PlayerDataPack.Data buf = playersData[i];
                     

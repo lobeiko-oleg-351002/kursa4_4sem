@@ -26,21 +26,21 @@ namespace Game
         byte character_id;
         static string[] Map = new string[map_Height]
         {
-            "  WWWWWWWWWWWWWW          ",
-            "          W               ",
-            "          W               ",
-            "          W               ",
-            "          W               ",
-            "          W               ",
-            "    WWWWWWW               ",
+            "  WWWWWWWWWWWWWWWWWWWWWWWW",
+            "                          ",
+            "                          ",
+            "        WWWWWWWWWWW       ",
+            "                          ",
+            "                          ",
+            "    WWW            WWW    ",
             "                          ",
             "                          ",
             "                          ",
-            "WWWWWWWW             W    ",
+            "WWWWWWWW           WWWWWWW",
             "WWWWWWWWWWWWWWWWWWWWWWWWWW",
         };
 
-        public static bool init()
+        public  bool init()
         {
             //Initialization flag
             bool success = true;
@@ -59,12 +59,12 @@ namespace Game
                 }
 
                 //Create window
-                globalWindow = SDL.SDL_CreateWindow("Game", SDL.SDL_WINDOWPOS_UNDEFINED, SDL.SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN);
+                globalWindow = SDL.SDL_CreateWindow("Game", this.Location.X, this.Location.Y, SCREEN_WIDTH, SCREEN_HEIGHT, SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN);
                 if (globalWindow == null)
                 {
                     Console.WriteLine("Window could not be created! SDL Error: %s\n", SDL.SDL_GetError());
                     success = false;
-                }
+                } 
                 else
                 {
                     //Create vsynced renderer for window
@@ -235,9 +235,10 @@ namespace Game
             }
             else
             {
+                this.Visible = false;
                 bool quit = false;
                 SDL.SDL_Event ev;
-
+                
                 Wall wall = new Wall();
                 wall.loading(globalRenderer);
 
@@ -280,6 +281,10 @@ namespace Game
                         if (ev.type ==  SDL.SDL_EventType.SDL_QUIT)
                         {
                             quit = true;
+                        }
+                        if (ev.key.keysym.sym == SDL.SDL_Keycode.SDLK_ESCAPE)
+                        {
+                            this.Visible = true;
                         }
                         if (player.animationStatus != "dead")
                         {
@@ -334,7 +339,7 @@ namespace Game
                             players[i].loading();                     
                        
                         }
-                    }
+                    } 
                     for (int i = 0; i < import.Count; i++)
                     {
                         players[i].importData(import[i]);
@@ -375,6 +380,11 @@ namespace Game
         private void timer_sendNames_Tick(object sender, EventArgs e)
         {
             refreshNameList(client);
+        }
+
+        private void button_Exit_Click(object sender, EventArgs e)
+        {
+            this.Close();
         }
     }
 }

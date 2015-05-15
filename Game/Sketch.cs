@@ -661,11 +661,12 @@ namespace Game
 
         public override void takingDamage(float timestep, int newHealth)
         {
-            //Console.WriteLine("{0} {1}", currentHealth, animationStatus);
+            Console.WriteLine("{0} {1}", newHealth, animationStatus);
             if (newHealth < currentHealth)
             {
                 if (isAttacked == false)
                 {
+
                     animationStatus = "takingDamage";
                     //prepareAnimation_takingDamage();
                     velocityX *= -1;
@@ -680,6 +681,7 @@ namespace Game
                 {
                     recoveryTimer = Sketch_recovery;
                     isAttacked = false;
+                    currentHealth = newHealth;
                     returnToStand();
                 }
             }

@@ -25,42 +25,12 @@ namespace Game
         }
         public void sendPackToServer( Socket sender, PlayerDataPack export)
         {
-            // Буфер для входящих данных
-            
-            //playerData.info = export;
-            // Соединяемся с удаленным устройством
-
-            // Устанавливаем удаленную точку для сокета
-            //IPHostEntry ipHost = Dns.GetHostEntry("192.168.0.102");
-            //IPAddress ipAddr = ipHost.AddressList[0];
-           // IPAddress ipAddr = IPAddress.Parse("127.0.0.1");
-           // IPEndPoint ipEndPoint = new IPEndPoint(ipAddr, port);
-
-            //Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-
-            // Соединяем сокет с удаленной точкой
-            //sender.Connect(ipEndPoint);
-
-            
-
             // Отправляем данные через сокет
             //byte[] bytes = new byte[128];           
             bytes = export.InfoToBytes();
             byte[] sendBytes = commandToGetPack.Concat(bytes).ToArray();
 
             count = sendMessage(sender, sendBytes);
-
-            // Получаем ответ от сервера
-            //int bytesRec = sender.Receive(bytes);
-           // List<PlayerDataPack.Data> list = new List<PlayerDataPack.Data>();
-            //list = export.bytesToListOfStruct(bytes);
-            //return list;
-
-            // Используем рекурсию для неоднократного вызова SendMessageFromSocket()
-            //if (message.IndexOf("<TheEnd>") == -1)
-            //    SendMessageFromSocket(port);
-
-            //// Освобождаем сокет
             
         }
 
@@ -140,7 +110,12 @@ namespace Game
                 else
                 {
                     i = i + 3;
-                    name = Encoding.UTF8.GetString(subBytes, 0, subBytes_length);
+                    byte[] bufBytes = new byte[subBytes_length+1];
+                    for (int k = 0; k < subBytes_length; k++)
+                    {
+                        bufBytes[k] = subBytes[k];
+                    }
+                    name = Encoding.Unicode.GetString(bufBytes);
                     nameList.Add(name);
 
                     subBytes = new byte[1024];
@@ -204,8 +179,8 @@ namespace Game
         }
 
         public List<string> namesExchange(string name)
-        {
-            byte[] msg = Encoding.UTF8.GetBytes(name);
+        { 
+            byte[] msg = Encoding.Unicode.GetBytes(name);
             Socket sender = initConnection();
             byte[] command = new byte[1];
             command[0] = 2;

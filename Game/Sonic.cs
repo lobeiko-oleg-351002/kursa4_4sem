@@ -502,6 +502,7 @@ namespace Game
                 {
                     recoveryTimer = Sonic_recovery;
                     isAttacked = false;
+                    currentHealth = newHealth;
                     returnToStand();
                 }
             }
